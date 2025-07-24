@@ -1,0 +1,18 @@
+=== Camera Calibration Results ===
+
+Camera Matrix (Intrinsic Parameters):
+fx, fy, cx, cy
+1399.74866830 0.00000000 858.21093016
+0.00000000 1389.45259035 658.70401155
+0.00000000 0.00000000 1.00000000
+
+Distortion Coefficients (k1, k2, p1, p2, k3):
+0.15288589 0.76071824 0.00169802 -0.00067514 -9.54344920
+
+Rotation Vector (rvec) for the first image (Rodrigues format):
+0.07034979
+
+Translation Vector (tvec) for the first image (in world units):
+-4.54066628
+
+Mean Reprojection Error: 0.014152 pixels

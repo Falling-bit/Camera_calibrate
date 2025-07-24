@@ -67,6 +67,31 @@ for i in range(len(world_points)):
 mean_error = total_error / len(world_points)
 print('Reprojection error:'+ str(mean_error))
 
+# 定义3D坐标轴点 (X轴红色，Y轴绿色，Z轴蓝色)
+axis = np.float32([[3,0,0], [0,3,0], [0,0,-3]]).reshape(-1,3)
+
+# 用PnP算法获取旋转矩阵和平移向量
+_, rvecs, tvecs, inliers = cv2.solvePnPRansac(world, corners_subpixel, camera_matrix, distortion_coefficient)
+
+# 将3D点投影到图像平面
+imgpts, jac = cv2.projectPoints(axis, rvecs, tvecs, camera_matrix, distortion_coefficient)
+
+# 获取棋盘格角点作为原点
+corner = tuple(corners_subpixel[0].ravel())
+
+# 绘制坐标轴
+def draw_axes(img, corner, imgpts):
+    corner = tuple(map(int, corner))  # 确保 corner 是整数元组
+    imgpts = imgpts.reshape(-1, 2).astype(int)  # 确保 imgpts 是整数数组
+    img = cv2.line(img, corner, tuple(imgpts[0]), (0, 0, 255), 5)  # X轴(红色)
+    img = cv2.line(img, corner, tuple(imgpts[1]), (0, 255, 0), 5)  # Y轴(绿色)
+    img = cv2.line(img, corner, tuple(imgpts[2]), (255, 0, 0), 5)  # Z轴(蓝色)
+    return img
+
+# 绘制坐标轴
+img_with_axes = draw_axes(dst, corner, imgpts)
+cv2.imwrite('axes_img.jpg', img_with_axes)
+
 #3D盒子点
 axis2 = np.float32([[0,0,0] , [0,3,0] , [3,3,0] , [3,0,0], [0,0,-3] , [0,3,-3] , [3,3,-3] , [3,0,-3]])
 
@@ -82,11 +107,53 @@ def draw_3D_Box(img, corners, imgpts):
     img = cv2.drawContours(img, [imgpts[4:]], -1, (0,0,255), 3)
     return img
 
-
-# 用PnP算法获取旋转矩阵和平移向量
-_, r_vectors, t_vectors, inliers = cv2.solvePnPRansac(world, corners_subpixel, camera_matrix, distortion_coefficient)
 # 重投影
-imgpts, jac = cv2.projectPoints(axis2, r_vectors, t_vectors, camera_matrix, distortion_coefficient)
+imgpts, jac = cv2.projectPoints(axis2, rvecs, tvecs, camera_matrix, distortion_coefficient)
 # 3D坐标系构建
-outcome_image = draw_3D_Box(dst, corners_subpixel, imgpts)
+outcome_image = draw_3D_Box(img_with_axes, corners_subpixel, imgpts)
 cv2.imwrite('outcome_img.jpg', outcome_image)
+
+
+#---输出
+def save_calibration_results(filename, camera_matrix, dist_coeffs, rvecs, tvecs, mean_error):
+    """
+    保存相机标定结果到 txt 文件
+    :param filename: 输出文件名（如 'calibration_results_1.txt'）
+    :param camera_matrix: 相机内参矩阵
+    :param dist_coeffs: 畸变系数
+    :param rvecs: 旋转向量列表
+    :param tvecs: 平移向量列表
+    :param mean_error: 平均重投影误差
+    """
+    with open(filename, 'w') as f:
+        f.write("=== Camera Calibration Results ===\n\n")
+
+        # 保存相机内参
+        f.write("Camera Matrix (Intrinsic Parameters):\n")
+        np.savetxt(f, camera_matrix, fmt='%.8f', header='fx, fy, cx, cy', comments='')
+
+        # 保存畸变系数
+        f.write("\nDistortion Coefficients (k1, k2, p1, p2, k3):\n")
+        np.savetxt(f, dist_coeffs.reshape(1, -1), fmt='%.8f')
+
+        # 保存旋转向量（只保存第一张图的）
+        f.write("\nRotation Vector (rvec) for the first image (Rodrigues format):\n")
+        np.savetxt(f, rvecs[0], fmt='%.8f')
+
+        # 保存平移向量（只保存第一张图的）
+        f.write("\nTranslation Vector (tvec) for the first image (in world units):\n")
+        np.savetxt(f, tvecs[0], fmt='%.8f')
+
+        # 保存重投影误差
+        f.write(f"\nMean Reprojection Error: {mean_error:.6f} pixels\n")
+
+# 保存标定结果到文件
+save_calibration_results(
+    filename="calibration_results_3.txt",
+    camera_matrix=camera_matrix,
+    dist_coeffs=distortion_coefficient,
+    rvecs=rvecs,
+    tvecs=tvecs,
+    mean_error=mean_error
+)
+print("Calibration results saved to 'calibration_results_2.txt'")
