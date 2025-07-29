@@ -1,10 +1,9 @@
+#   use this reproject.py with input intrinsic and extrinsic to get reproject error
 
 import cv2
 import numpy as np
 import glob
 from datetime import datetime
-
-from calibrate.axis import distortion_coefficient
 
 # 棋盘格参数
 from chessboard import x_num, y_num
@@ -25,7 +24,7 @@ world_points = []
 image_points = []
 
 # 检测角点
-images = glob.glob('photo2.jpg')  # 替换为你的图片路径
+images = glob.glob(r'./r&tvec/*.jpg')  # 替换为你的图片路径
 for image in images:
     img = cv2.imread(image)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -41,44 +40,37 @@ for image in images:
         cv2.drawChessboardCorners(img, (num_x, num_y), corners_subpix, ret)
         cv2.imwrite('corners_detected.jpg', img)
 
-# 相机标定
+'''
+# 相机标定----
 ret, camera_matrix, dist_coeffs, rvecs, tvecs = cv2.calibrateCamera(
     world_points, image_points, gray.shape[::-1], None, None
 )
+'''
+
+#输入测试参数 内参+外参
+camera_matrix=[[1.21913761e+03, 0.00000000e+00, 8.51803356e+02 ],
+               [0.00000000e+00, 1.21960559e+03, 6.42361708e+02],
+               [0.00000000e+00, 0.00000000e+00, 1.00000000e+00]]
+dist_coeffs=[ 2.04433223e-01, -8.38538735e-01,  2.67934454e-06, -2.45337372e-04,  9.55365969e-01]
+rvecs=[-0.08797623, 0.01320572, -0.01609278]
+tvecs=[-22.56968043, -54.01282708, 156.95175402]
+
+camera_matrix = np.array(camera_matrix,dtype=np.float32).reshape(3,3)
+dist_coeffs = np.array(dist_coeffs,dtype=np.float32).reshape(1,5)
+rvecs = np.array(rvecs,dtype=np.float32).reshape(3,1)
+tvecs = np.array(tvecs,dtype=np.float32).reshape(3,1)
+
 
 # 计算重投影误差
+error_list = []
 mean_error = 0
 for i in range(len(world_points)):
-    img_points_reproj, _ = cv2.projectPoints(world_points[i], rvecs[i], tvecs[i], camera_matrix, dist_coeffs)
+    img_points_reproj, _ = cv2.projectPoints(world_points[i], rvecs, tvecs, camera_matrix, dist_coeffs)
     error = cv2.norm(image_points[i], img_points_reproj, cv2.NORM_L2) / len(img_points_reproj)
+    error_list.append(error)
     mean_error += error
 mean_error /= len(world_points)
 
-# === 以第一个角点为原点绘制3D坐标系 ===
-# 定义坐标系轴（X/Y轴沿棋盘格边缘，Z轴垂直向外，单位：mm）
-axis_length = 20.0  # 坐标系轴长度（mm）
-axis_points = np.float32([
-    [axis_length, 0, 0],  # X轴（红色）
-    [0, axis_length, 0],  # Y轴（绿色）
-    [0, 0, -axis_length]  # Z轴（蓝色，负值表示指向相机外）
-]).reshape(-1, 3)
-
-# 使用PnP求解当前棋盘格的位姿（以第一个角点为原点）
-ret, rvec, tvec = cv2.solvePnP(world, image_points[0], camera_matrix, dist_coeffs)
-
-# 将3D轴点投影到图像平面
-img_pts, _ = cv2.projectPoints(axis_points, rvec, tvec, camera_matrix, dist_coeffs)
-img_pts = img_pts.astype(int).reshape(-1, 2)
-
-# 获取第一个角点（原点）的像素坐标
-origin = tuple(image_points[0][0].ravel().astype(int))
-
-# 在图像上绘制坐标系
-img_axes = cv2.imread('photo3.jpg')
-cv2.line(img_axes, origin, tuple(img_pts[0]), (0, 0, 255), 3)  # X轴（红色）
-cv2.line(img_axes, origin, tuple(img_pts[1]), (0, 255, 0), 3)  # Y轴（绿色）
-cv2.line(img_axes, origin, tuple(img_pts[2]), (255, 0, 0), 3)  # Z轴（蓝色）
-cv2.imwrite('3d_axes.jpg', img_axes)
 
 
 # === 保存标定结果 ===
@@ -87,9 +79,11 @@ def save_calibration_results(filename, camera_matrix, dist_coeffs, rvec, tvec, m
         f.write(f"=== Camera Calibration Results (Generated on {datetime.now()}) ===\n\n")
         f.write(f"Chessboard Square Size: {square_size} mm\n")
         f.write(f"Chessboard Dimensions: {num_x} x {num_y} (inner corners)\n")
-        f.write(f"Mean Reprojection Error: {mean_error:.4f} pixels\n\n")
+        f.write(f"Mean Reprojection Error: {mean_error:.4f} pixels\n")
+        f.write(f"Error list: \n")
+        np.savetxt(f,np.array(error_list).reshape(1,-1),fmt='%.4f')
 
-        f.write("Camera Matrix (Intrinsic):\n")
+        f.write("\nCamera Matrix (Intrinsic):\n")
         np.savetxt(f, camera_matrix, fmt='%.8f')
 
         f.write("\nDistortion Coefficients (k1, k2, p1, p2, k3):\n")
@@ -103,13 +97,12 @@ def save_calibration_results(filename, camera_matrix, dist_coeffs, rvec, tvec, m
 
 
 save_calibration_results(
-    filename="calibration_results_" + str(images) + ".txt",
+    filename="test_result.txt",
     camera_matrix=camera_matrix,
-    dist_coeffs=distortion_coefficient,
-    rvec=rvec,
-    tvec=tvec,
+    dist_coeffs=dist_coeffs,
+    rvec=rvecs,
+    tvec=tvecs,
     mean_error=mean_error
 )
 
-print("Calibration completed! Results saved to 'calibration_results.txt'")
-print(f"3D axes visualization saved to '3d_axes.jpg'")
+print("Testing completed! Results saved to 'test_result.txt'")

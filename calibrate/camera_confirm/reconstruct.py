@@ -8,6 +8,7 @@ from calibrate.axis import distortion_coefficient
 
 # 棋盘格参数
 from chessboard import x_num, y_num
+from extrinsic_confirm import camera_matrix,dist_coeffs,avr_rvecs,avr_tvecs
 
 square_size = 5.0  # 每个格子的物理尺寸（单位：mm）
 
@@ -41,6 +42,7 @@ for image in images:
         cv2.drawChessboardCorners(img, (num_x, num_y), corners_subpix, ret)
         cv2.imwrite('corners_detected.jpg', img)
 
+'''
 # 相机标定
 ret, camera_matrix, dist_coeffs, rvecs, tvecs = cv2.calibrateCamera(
     world_points, image_points, gray.shape[::-1], None, None
@@ -53,7 +55,7 @@ for i in range(len(world_points)):
     error = cv2.norm(image_points[i], img_points_reproj, cv2.NORM_L2) / len(img_points_reproj)
     mean_error += error
 mean_error /= len(world_points)
-
+'''
 # === 以第一个角点为原点绘制3D坐标系 ===
 # 定义坐标系轴（X/Y轴沿棋盘格边缘，Z轴垂直向外，单位：mm）
 axis_length = 20.0  # 坐标系轴长度（mm）
@@ -64,10 +66,10 @@ axis_points = np.float32([
 ]).reshape(-1, 3)
 
 # 使用PnP求解当前棋盘格的位姿（以第一个角点为原点）
-ret, rvec, tvec = cv2.solvePnP(world, image_points[0], camera_matrix, dist_coeffs)
+ret, avr_rvecs, avr_tvecs = cv2.solvePnP(world, image_points[0], camera_matrix, dist_coeffs)
 
 # 将3D轴点投影到图像平面
-img_pts, _ = cv2.projectPoints(axis_points, rvec, tvec, camera_matrix, dist_coeffs)
+img_pts, _ = cv2.projectPoints(axis_points, avr_rvecs, avr_tvecs, camera_matrix, dist_coeffs)
 img_pts = img_pts.astype(int).reshape(-1, 2)
 
 # 获取第一个角点（原点）的像素坐标
