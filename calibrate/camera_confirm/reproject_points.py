@@ -1,5 +1,3 @@
-#   use this reproject.py with input intrinsic and extrinsic to get reproject error
-
 import cv2
 import numpy as np
 import glob
@@ -36,6 +34,9 @@ for image in images:
         world_points.append(world)
         image_points.append(corners_subpix)
 
+        print(image_points[0][0])
+        print(world_points[0][0])
+
         # 可视化角点
         cv2.drawChessboardCorners(img, (num_x, num_y), corners_subpix, ret)
         cv2.imwrite('corners_detected.jpg', img)
@@ -61,48 +62,34 @@ rvecs = np.array(rvecs,dtype=np.float32).reshape(3,1)
 tvecs = np.array(tvecs,dtype=np.float32).reshape(3,1)
 
 
-# 计算重投影误差
-error_list = []
-mean_error = 0
-for i in range(len(world_points)):
-    img_points_reproj, _ = cv2.projectPoints(world_points[i], rvecs, tvecs, camera_matrix, dist_coeffs)
-    error = cv2.norm(image_points[i], img_points_reproj, cv2.NORM_L2) / len(img_points_reproj)
-    error_list.append(error)
-    mean_error += error
-mean_error /= len(world_points)
+def project_points(object_points, rvec, tvec, camera_matrix, dist_coeffs):
+    # Step 1: 旋转向量 → 旋转矩阵
+    R, _ = cv2.Rodrigues(rvec)
+    object_points = np.array([object_points])
 
+    # Step 2: 转换到相机坐标系
+    X_cam = R @ object_points.T + tvec.reshape(3, 1)
+    X_cam = X_cam.T  # 转置为Nx3
 
+    # Step 3: 归一化投影
+    x = X_cam[:, 0] / X_cam[:, 2]
+    y = X_cam[:, 1] / X_cam[:, 2]
 
-# === 保存标定结果 ===
-def save_calibration_results(filename, camera_matrix, dist_coeffs, rvec, tvec, mean_error):
-    with open(filename, 'w') as f:
-        f.write(f"=== Camera Calibration Results (Generated on {datetime.now()}) ===\n\n")
-        f.write(f"Chessboard Square Size: {square_size} mm\n")
-        f.write(f"Chessboard Dimensions: {num_x} x {num_y} (inner corners)\n")
-        f.write(f"Mean Reprojection Error: {mean_error:.4f} pixels\n")
-        f.write(f"Error list: \n")
-        np.savetxt(f,np.array(error_list).reshape(1,-1),fmt='%.4f')
+    # Step 4: 畸变校正
+    r2 = x ** 2 + y ** 2
+    radial = 1 + dist_coeffs[0][0] * r2 + dist_coeffs[0][1] * r2 ** 2 + dist_coeffs[0][4] * r2 ** 3
+    x_distorted = x * radial + 2 * dist_coeffs[0][2] * x * y + dist_coeffs[0][3] * (r2 + 2 * x ** 2)
+    y_distorted = y * radial + dist_coeffs[0][2] * (r2 + 2 * y ** 2) + 2 * dist_coeffs[0][3] * x * y
 
-        f.write("\nCamera Matrix (Intrinsic):\n")
-        np.savetxt(f, camera_matrix, fmt='%.8f')
+    # Step 5: 像素坐标
+    fx, fy = camera_matrix[0, 0], camera_matrix[1, 1]
+    cx, cy = camera_matrix[0, 2], camera_matrix[1, 2]
+    u = fx * x_distorted + cx
+    v = fy * y_distorted + cy
 
-        f.write("\nDistortion Coefficients (k1, k2, p1, p2, k3):\n")
-        np.savetxt(f, dist_coeffs.reshape(1, -1), fmt='%.8f')
+    return np.column_stack((u, v))
 
-        f.write("\nRotation Vector (rvec) for the first image:\n")
-        np.savetxt(f, rvec, fmt='%.8f')
-
-        f.write("\nTranslation Vector (tvec) for the first image (in mm):\n")
-        np.savetxt(f, tvec, fmt='%.8f')
-
-
-save_calibration_results(
-    filename="test_result.txt",
-    camera_matrix=camera_matrix,
-    dist_coeffs=dist_coeffs,
-    rvec=rvecs,
-    tvec=tvecs,
-    mean_error=mean_error
-)
-
-print("Testing completed! Results saved to 'test_result.txt'")
+if __name__ == '__main__':
+    print(world_points[0][0])
+    img_point = project_points(world_points[0][0],rvecs,tvecs,camera_matrix, dist_coeffs)
+    print(img_point)

@@ -28,7 +28,6 @@ world_points = []
 image_points = []
 image_names = []
 
-
 rvecs = []
 tvecs = []
 
@@ -42,10 +41,8 @@ results = {
     'Distortion Coefficients': []
 }
 
-
-
 # 检测角点
-images = glob.glob(r'./r&tvec/*.jpg')   # 获取所有jpg和png图片
+images = glob.glob(r'./r&tvec/*.jpg')  # 获取所有jpg和png图片
 print(images)
 for image in images:
     img = cv2.imread(image)
@@ -66,67 +63,71 @@ for image in images:
         cv2.drawChessboardCorners(img, (num_x, num_y), corners_subpix, ret)
         cv2.imwrite(f'corners_{image}', img)
 
-
 if not world_points:
     print("No chessboard found in any images!")
     exit()
 
 # 相机标定
 ret, camera_matrix, dist_coeffs, rvecs, tvecs = cv2.calibrateCamera(
-        world_points, image_points, gray.shape[::-1], camera_matrix, dist_coeffs
+    world_points, image_points, gray.shape[::-1], camera_matrix, dist_coeffs
 )
-print(camera_matrix)
+#print(camera_matrix)
 
-#calcu mean
-avr_rvecs = np.mean(rvecs,axis=0)
-avr_tvecs = np.mean(tvecs,axis=0)
-
-# 计算重投影误差并收集结果
-for i in range(len(world_points)):  #world points 份数
-    img_points_reproj, _ = cv2.projectPoints(world_points[i], avr_rvecs, avr_tvecs, camera_matrix, dist_coeffs)
-    error = cv2.norm(image_points[i], img_points_reproj, cv2.NORM_L2) / len(img_points_reproj)
-
-    '''
-    # 输出旋转角（欧拉角）
-    rmat, _ = cv2.Rodrigues(rvecs[i])
-    euler_angles = np.degrees(rotationMatrixToEulerAngles(rmat))  # 转为角度
-    print(f"Euler angles (deg): Roll={euler_angles[0]:.1f}, Pitch={euler_angles[1]:.1f}, Yaw={euler_angles[2]:.1f}")
-    '''
-
-    # 保存每张图片的结果
-    results['Image Name'].append(image_names[i])
-    results['Reprojection Error'].append(error)
-    results['Rotation Vector (rvec)'].append(rvecs[i].flatten())
-    results['Translation Vector (tvec)'].append(tvecs[i].flatten())
-    results['Camera Matrix'].append(camera_matrix.flatten())
-    results['Distortion Coefficients'].append(dist_coeffs.flatten())
+# calcu mean
+avr_rvecs = np.mean(rvecs, axis=0)
+avr_tvecs = np.mean(tvecs, axis=0)
 
 
+def print_and_save():
+    # 计算重投影误差并收集结果
+    for i in range(len(world_points)):  # world points 份数
+        img_points_reproj, _ = cv2.projectPoints(world_points[i], avr_rvecs, avr_tvecs, camera_matrix, dist_coeffs)
+        error = cv2.norm(image_points[i], img_points_reproj, cv2.NORM_L2) / len(img_points_reproj)
 
+        print(img_points_reproj[0][0])
 
-# 创建DataFrame并保存到Excel
-df = pd.DataFrame(results)
-excel_filename = f'calibration_results_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
-df.to_excel(excel_filename, index=False)
+        '''
+        # 输出旋转角（欧拉角）
+        rmat, _ = cv2.Rodrigues(rvecs[i])
+        euler_angles = np.degrees(rotationMatrixToEulerAngles(rmat))  # 转为角度
+        print(f"Euler angles (deg): Roll={euler_angles[0]:.1f}, Pitch={euler_angles[1]:.1f}, Yaw={euler_angles[2]:.1f}")
+        '''
 
-# 保存全局标定参数
-with open('global_calibration_results.txt', 'w') as f:
-    f.write(f"=== Global Camera Calibration Results (Generated on {datetime.now()}) ===\n\n")
-    f.write(f"Chessboard Square Size: {square_size} mm\n")
-    f.write(f"Chessboard Dimensions: {num_x} x {num_y} (inner corners)\n")
-    f.write(f"Mean Reprojection Error: {np.mean(results['Reprojection Error']):.4f} pixels\n\n")
+        # 保存每张图片的结果
+        results['Image Name'].append(image_names[i])
+        results['Reprojection Error'].append(error)
+        results['Rotation Vector (rvec)'].append(rvecs[i].flatten())
+        results['Translation Vector (tvec)'].append(tvecs[i].flatten())
+        results['Camera Matrix'].append(camera_matrix.flatten())
+        results['Distortion Coefficients'].append(dist_coeffs.flatten())
 
-    f.write("Rotation Vector:\n")
-    np.savetxt(f,avr_rvecs,fmt='%.8f')
+    # 创建DataFrame并保存到Excel
+    df = pd.DataFrame(results)
+    excel_filename = f'calibration_results_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+    df.to_excel(excel_filename, index=False)
 
-    f.write("Translation Vector:\n")
-    np.savetxt(f,avr_tvecs,fmt='%.8f')
+    # 保存全局标定参数
+    with open('global_calibration_results.txt', 'w') as f:
+        f.write(f"=== Global Camera Calibration Results (Generated on {datetime.now()}) ===\n\n")
+        f.write(f"Chessboard Square Size: {square_size} mm\n")
+        f.write(f"Chessboard Dimensions: {num_x} x {num_y} (inner corners)\n")
+        f.write(f"Mean Reprojection Error: {np.mean(results['Reprojection Error']):.4f} pixels\n\n")
 
-    f.write("\nCamera Matrix (Intrinsic):\n")
-    np.savetxt(f, camera_matrix, fmt='%.8f')
+        f.write("Rotation Vector:\n")
+        np.savetxt(f, avr_rvecs, fmt='%.8f')
 
-    f.write("\nDistortion Coefficients (k1, k2, p1, p2, k3):\n")
-    np.savetxt(f, dist_coeffs.reshape(1, -1), fmt='%.8f')
+        f.write("Translation Vector:\n")
+        np.savetxt(f, avr_tvecs, fmt='%.8f')
 
-print(f"Calibration completed! Individual results saved to {excel_filename}")
-print(f"Global calibration parameters saved to 'global_calibration_results.txt'")
+        f.write("\nCamera Matrix (Intrinsic):\n")
+        np.savetxt(f, camera_matrix, fmt='%.8f')
+
+        f.write("\nDistortion Coefficients (k1, k2, p1, p2, k3):\n")
+        np.savetxt(f, dist_coeffs.reshape(1, -1), fmt='%.8f')
+
+    print(f"Calibration completed! Individual results saved to {excel_filename}")
+    print(f"Global calibration parameters saved to 'global_calibration_results.txt'")
+
+if __name__ == '__main__':
+    print_and_save()
+

@@ -1,4 +1,4 @@
-=== Global Camera Calibration Results (Generated on 2025-07-29 16:08:01.163082) ===
+=== Global Camera Calibration Results (Generated on 2025-08-01 09:22:24.032565) ===
 
 Chessboard Square Size: 5.0 mm
 Chessboard Dimensions: 13 x 7 (inner corners)
@@ -10,12 +10,12 @@ Rotation Vector:
 -0.01609278
 Translation Vector:
 -22.56968043
--54.01282708
-156.95175402
+-54.01282707
+156.95175413
 
 Camera Matrix (Intrinsic):
-1422.53945020 0.00000000 815.28892139
-0.00000000 1420.13381629 681.54284158
+1422.53945125 0.00000000 815.28892137
+0.00000000 1420.13381734 681.54284146
 0.00000000 0.00000000 1.00000000
 
 Distortion Coefficients (k1, k2, p1, p2, k3):
