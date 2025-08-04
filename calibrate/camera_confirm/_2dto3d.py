@@ -50,9 +50,10 @@ ret, camera_matrix, dist_coeffs, rvecs, tvecs = cv2.calibrateCamera(
 camera_matrix=[[1.21913761e+03, 0.00000000e+00, 8.51803356e+02 ],
                [0.00000000e+00, 1.21960559e+03, 6.42361708e+02],
                [0.00000000e+00, 0.00000000e+00, 1.00000000e+00]]
-dist_coeffs=[ 2.04433223e-01, -8.38538735e-01,  2.67934454e-06, -2.45337372e-04,  9.55365969e-01]
-rvecs=[-0.08797623, 0.01320572, -0.01609278]
-tvecs=[-22.56968043, -54.01282708, 156.95175402]
+dist_coeffs=[0., 0., 0., 0., 0.]
+
+rvecs=[-0.08987502, 0.00418314, -0.01795928]
+tvecs=[-26.59794645, -49.63130444, 134.50097077]
 
 camera_matrix = np.array(camera_matrix,dtype=np.float32).reshape(3,3)
 dist_coeffs = np.array(dist_coeffs,dtype=np.float32).reshape(1,5)
@@ -66,6 +67,7 @@ B = []
 
 # 旋转矩阵
 R, _ = cv2.Rodrigues(rvecs)
+print(R)
 
 # 遍历所有点
 for i in range(len(world_points[0])):
@@ -105,7 +107,7 @@ reprojected, _ = cv2.projectPoints(
     dist_coeffs
 )
 reprojected = reprojected.reshape(-1)
-print("\n重投影验证：")
+print("\n重投影验证（3d-2d）：")
 print("原始图像坐标:", [u, v])
 print("重投影图像坐标:", reprojected)
 
@@ -144,6 +146,7 @@ if __name__ == '__main__':
 
     # 正确获取单个图像点坐标
     u, v = image_points[0][test_point_idx][0]  # 获取(u,v)坐标
+    np.set_printoptions(precision=4,suppress=True)
     print('Input image point:', (u, v))
 
     # 将图像点转换为齐次坐标 (3x1)
@@ -157,3 +160,9 @@ if __name__ == '__main__':
     world_coord = np.linalg.inv(R) @ (cam_point - tvecs.reshape(3, 1))
 
     print('Output world point:', world_coord.flatten())
+    print(X_w,Y_w)
+
+    # Calculate reconstruction error
+    original_point = np.array([X_w, Y_w, 0])
+    error = np.linalg.norm(world_coord - original_point)
+    print('Reconstruction error (mm):', error)

@@ -6,31 +6,23 @@ from _2dto3d import s,camera_matrix,rvecs,tvecs,dist_coeffs
 
 class Interactive3DViewer:
     def __init__(self):
+        self.camera_matrix = None
+        self.dist_coeffs = None
+        self.rvec = None
+        self.tvec = None
+        self.current_img = None
+        self.window_name = "3D Coordinate Viewer"
+
+    def load(self, img_path):
         self.camera_matrix = camera_matrix
         self.dist_coeffs = dist_coeffs
         self.rvec = rvecs
         self.tvec = tvecs
-        self.current_img = cv2.imread(r'./r&tvec/20250728160418_43.jpg')
+        self.current_img = cv2.imread(img_path)
         self.window_name = "3D Coordinate Viewer"
 
-    def load_calibration(self, calib_file):
-        """加载标定数据"""
-        data = np.load(calib_file)
-        self.camera_matrix = data['camera_matrix']
-        self.dist_coeffs = data['dist_coeffs']
-        self.rvec = data['rvec']
-        self.tvec = data['tvec']
-
-    def load_image(self, img_path):
-        """加载图像"""
-        self.current_img = cv2.imread(img_path)
-        if self.current_img is None:
-            raise ValueError(f"无法加载图像: {img_path}")
 
     def unproject_points(self, pixel_points, Z=1.0):
-        #X_w, Y_w, _ = [] # Z_w = 0
-        #u, v = pixel_points
-
         # 正确获取单个图像点坐标
         u, v = pixel_points[0][0], pixel_points[0][1]  # 获取(u,v)坐标
         print('Input image point:', (u, v))
@@ -63,11 +55,9 @@ class Interactive3DViewer:
                         (0, 255, 255), 2)
             cv2.imshow(self.window_name, display_img)
 
-    def run(self, img_path, calib_file):
+    def run(self,img_path):
         """运行交互式查看器"""
-        self.load_calibration(calib_file)
-        self.load_image(img_path)
-
+        self.load(img_path)
         cv2.namedWindow(self.window_name)
         cv2.setMouseCallback(self.window_name, self.mouse_callback)
 
@@ -77,8 +67,7 @@ class Interactive3DViewer:
 
 
 if __name__ == "__main__":
+    img_path = r'./r&tvec/20250728160418_43.jpg'
+    #Interactive3DViewer.__init__(self=Interactive3DViewer,img_path=img_path)
     viewer = Interactive3DViewer()
-    viewer.run(
-        img_path="./r&tvec/20250728160418_43.jpg",
-        calib_file="./calib_data1.npz"
-    )
+    viewer.run(img_path=img_path)

@@ -1,10 +1,10 @@
-=== Camera Calibration Results (Generated on 2025-07-30 09:22:16.116372) ===
+=== Camera Calibration Results (Generated on 2025-08-04 08:49:19.030314) ===
 
 Chessboard Square Size: 5.0 mm
 Chessboard Dimensions: 13 x 7 (inner corners)
-Mean Reprojection Error: 4.0098 pixels
+Mean Reprojection Error: 4.2175 pixels
 Error list: 
-3.9839 3.9979 3.9977 3.9594 3.9589 3.9581 3.9581 3.9608 3.9600 3.9626 3.9676 3.9926 3.9686 3.9789 4.0432 4.0179 4.0204 4.0299 4.0564 4.0695 4.3642
+4.1875 4.1885 4.1892 4.1546 4.1538 4.1523 4.1524 4.1564 4.1558 4.1591 4.1647 4.1996 4.1671 4.1801 4.2652 4.2322 4.2364 4.2486 4.2816 4.6452 4.2977
 
 Camera Matrix (Intrinsic):
 1219.13757324 0.00000000 851.80334473
@@ -12,7 +12,7 @@ Camera Matrix (Intrinsic):
 0.00000000 0.00000000 1.00000000
 
 Distortion Coefficients (k1, k2, p1, p2, k3):
-0.20443322 -0.83853871 0.00000268 -0.00024534 0.95536596
+0.00000000 0.00000000 0.00000000 0.00000000 0.00000000
 
 Rotation Vector (rvec) for the first image:
 -0.08797623

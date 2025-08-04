@@ -19,7 +19,7 @@ world = np.zeros((num_x * num_y, 3), np.float32)
 world[:, :2] = square_size * np.mgrid[0:num_x, 0:num_y].T.reshape(-1, 2)  # 物理尺寸单位（mm）
 
 # 标定参数
-criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_MAX_ITER, 100, 0.0001)
 world_points = []
 image_points = []
 image_names = []
@@ -129,7 +129,7 @@ def print_and_save():
     df.to_excel(excel_filename, index=False)
 
     # 保存全局标定参数
-    with open('global_calibration_results.txt', 'w') as f:
+    with open('intrinsic.txt', 'w') as f:
         f.write(f"=== Global Camera Calibration Results (Generated on {datetime.now()}) ===\n\n")
         f.write(f"Chessboard Square Size: {square_size} mm\n")
         f.write(f"Chessboard Dimensions: {num_x} x {num_y} (inner corners)\n")

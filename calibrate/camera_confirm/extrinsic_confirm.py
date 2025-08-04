@@ -8,9 +8,14 @@ import glob
 from datetime import datetime
 import pandas as pd
 
+
 # 棋盘格参数
 from chessboard import x_num, y_num
 from intrinsic_confirm import camera_matrix,dist_coeffs
+
+
+dist_coeffs[0] = 0
+print(dist_coeffs)
 
 square_size = 5.0  # 每个格子的物理尺寸（单位：mm）
 
@@ -62,16 +67,24 @@ for image in images:
         # 可视化角点
         cv2.drawChessboardCorners(img, (num_x, num_y), corners_subpix, ret)
         cv2.imwrite(f'corners_{image}', img)
+        # 更换solvePnP求解外参----------------------------------------------------------------------
+        success,rvec,tvec = cv2.solvePnP(world, corners_subpix, camera_matrix, dist_coeffs)
+        rvecs.append(rvec)
+        tvecs.append(tvec)
+        #-----------------------------------------------------------------------------------------
 
 if not world_points:
     print("No chessboard found in any images!")
     exit()
-
-# 相机标定
-ret, camera_matrix, dist_coeffs, rvecs, tvecs = cv2.calibrateCamera(
-    world_points, image_points, gray.shape[::-1], camera_matrix, dist_coeffs
-)
+'''
+# 相机标定calibratecamera-------------------------------------------------------
+ret, camera_matrix, dist_coeffs,rvecs, tvecs = cv2.calibrateCamera(
+     world_points, image_points, gray.shape[::-1], camera_matrix, dist_coeffs,flags=cv2.CALIB_FIX_INTRINSIC
+ )
 #print(camera_matrix)
+#--------------------------------------------------------------------------------
+'''
+
 
 # calcu mean
 avr_rvecs = np.mean(rvecs, axis=0)
@@ -84,7 +97,7 @@ def print_and_save():
         img_points_reproj, _ = cv2.projectPoints(world_points[i], avr_rvecs, avr_tvecs, camera_matrix, dist_coeffs)
         error = cv2.norm(image_points[i], img_points_reproj, cv2.NORM_L2) / len(img_points_reproj)
 
-        print(img_points_reproj[0][0])
+        #print(img_points_reproj[0][0])
 
         '''
         # 输出旋转角（欧拉角）
@@ -107,7 +120,7 @@ def print_and_save():
     df.to_excel(excel_filename, index=False)
 
     # 保存全局标定参数
-    with open('global_calibration_results.txt', 'w') as f:
+    with open('extrinsic.txt', 'w') as f:
         f.write(f"=== Global Camera Calibration Results (Generated on {datetime.now()}) ===\n\n")
         f.write(f"Chessboard Square Size: {square_size} mm\n")
         f.write(f"Chessboard Dimensions: {num_x} x {num_y} (inner corners)\n")

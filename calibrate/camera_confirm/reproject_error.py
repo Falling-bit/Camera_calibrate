@@ -5,6 +5,7 @@ import numpy as np
 import glob
 from datetime import datetime
 
+
 # 棋盘格参数
 from chessboard import x_num, y_num
 
@@ -51,7 +52,8 @@ ret, camera_matrix, dist_coeffs, rvecs, tvecs = cv2.calibrateCamera(
 camera_matrix=[[1.21913761e+03, 0.00000000e+00, 8.51803356e+02 ],
                [0.00000000e+00, 1.21960559e+03, 6.42361708e+02],
                [0.00000000e+00, 0.00000000e+00, 1.00000000e+00]]
-dist_coeffs=[ 2.04433223e-01, -8.38538735e-01,  2.67934454e-06, -2.45337372e-04,  9.55365969e-01]
+#dist_coeffs=[ 2.04433223e-01, -8.38538735e-01,  2.67934454e-06, -2.45337372e-04,  9.55365969e-01]
+dist_coeffs=[0,0,0,0,0]
 rvecs=[-0.08797623, 0.01320572, -0.01609278]
 tvecs=[-22.56968043, -54.01282708, 156.95175402]
 
